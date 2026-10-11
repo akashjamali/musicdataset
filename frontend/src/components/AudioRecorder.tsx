@@ -182,7 +182,7 @@ const AudioRecorder = () => {
       <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
         <div className="text-sm font-medium bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          ڊيٽابيس: فعال (PostgreSQL)
+          ڊيٽابيس: فعال (MySQL)
         </div>
         <button
           onClick={fetchSongs}
@@ -289,7 +289,7 @@ const AudioRecorder = () => {
             <div className="flex justify-between items-center border-b pb-3 mb-4">
               <div>
                 <h4 className="text-xl font-bold text-gray-900">ڊيٽابيس جا سنڌي گيت</h4>
-                <p className="text-xs text-gray-500">PostgreSQL (800,000+ Fingerprints)</p>
+                <p className="text-xs text-gray-500">MySQL / phpMyAdmin (800,000+ Fingerprints)</p>
               </div>
               <button
                 onClick={() => setShowCatalog(false)}

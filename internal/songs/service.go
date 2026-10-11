@@ -2,6 +2,7 @@ package songs
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -31,16 +32,18 @@ type Service interface {
 
 type svc struct {
 	repo          repo.Querier
-	db            *pgx.Conn
+	pgDb          *pgx.Conn
+	sqlDb         *sql.DB
 	spotifyClient spotify.Service
 	downloadSvc   download.Service
 	audioSvc      audio.Service
 }
 
-func NewService(repo repo.Querier, db *pgx.Conn, spotifyClient spotify.Service, downloadSvc download.Service, audioSvc audio.Service) Service {
+func NewService(repo repo.Querier, pgDb *pgx.Conn, sqlDb *sql.DB, spotifyClient spotify.Service, downloadSvc download.Service, audioSvc audio.Service) Service {
 	return &svc{
 		repo:          repo,
-		db:            db,
+		pgDb:          pgDb,
+		sqlDb:         sqlDb,
 		spotifyClient: spotifyClient,
 		downloadSvc:   downloadSvc,
 		audioSvc:      audioSvc,
@@ -429,23 +432,52 @@ func (s *svc) processAndSaveFingerprints(ctx context.Context, songID int32, wavP
 
 	slog.Info("saving fingerprints", "song_id", songID, "count", len(deduplicated), "original_count", len(fingerprints))
 
-	rowsCopied, err := s.db.CopyFrom(
-		ctx,
-		pgx.Identifier{"fingerprints"},
-		[]string{"hash", "song_id", "time_offset_ms"},
-		pgx.CopyFromSlice(len(deduplicated), func(i int) ([]any, error) {
-			return []any{
-				deduplicated[i].Hash,
-				songID,
-				int32(deduplicated[i].TimeOffsetMs),
-			}, nil
-		}),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to batch insert fingerprints: %w", err)
+	if s.sqlDb != nil {
+		const batchSize = 2000
+		for i := 0; i < len(deduplicated); i += batchSize {
+			end := i + batchSize
+			if end > len(deduplicated) {
+				end = len(deduplicated)
+			}
+			chunk := deduplicated[i:end]
+
+			valueStrings := make([]string, 0, len(chunk))
+			valueArgs := make([]interface{}, 0, len(chunk)*3)
+			for _, fp := range chunk {
+				valueStrings = append(valueStrings, "(?, ?, ?)")
+				valueArgs = append(valueArgs, fp.Hash, songID, int32(fp.TimeOffsetMs))
+			}
+
+			stmt := fmt.Sprintf("INSERT INTO fingerprints (hash, song_id, time_offset_ms) VALUES %s", strings.Join(valueStrings, ","))
+			if _, err := s.sqlDb.ExecContext(ctx, stmt, valueArgs...); err != nil {
+				return fmt.Errorf("failed to batch insert fingerprints into MySQL: %w", err)
+			}
+		}
+		slog.Info("successfully saved all fingerprints to MySQL", "song_id", songID, "total_fingerprints", len(deduplicated))
+		return nil
 	}
 
-	slog.Info("successfully saved all fingerprints", "song_id", songID, "count", rowsCopied, "total_fingerprints", len(deduplicated))
+	if s.pgDb != nil {
+		rowsCopied, err := s.pgDb.CopyFrom(
+			ctx,
+			pgx.Identifier{"fingerprints"},
+			[]string{"hash", "song_id", "time_offset_ms"},
+			pgx.CopyFromSlice(len(deduplicated), func(i int) ([]any, error) {
+				return []any{
+					deduplicated[i].Hash,
+					songID,
+					int32(deduplicated[i].TimeOffsetMs),
+				}, nil
+			}),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to batch insert fingerprints: %w", err)
+		}
+
+		slog.Info("successfully saved all fingerprints", "song_id", songID, "count", rowsCopied, "total_fingerprints", len(deduplicated))
+		return nil
+	}
+
 	return nil
 }
 

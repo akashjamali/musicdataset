@@ -1,27 +1,26 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/Danztee/shazam-build/internal/env"
-	"github.com/jackc/pgx/v5"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
 
-	// if err := godotenv.Load(); err != nil {
-	// 	slog.Error("failed to load .env file", "error", err)
-	// 	os.Exit(1)
-	// }
-
-	ctx := context.Background()
+	dsn := env.GetString("DATABASE_URL", "root:@tcp(127.0.0.1:3306)/shazam?parseTime=true")
+	if strings.HasPrefix(dsn, "postgres://") {
+		dsn = "root:@tcp(127.0.0.1:3306)/shazam?parseTime=true"
+	}
 
 	cfg := Config{
-		addr: ":" + env.GetString("PORT", ""),
+		addr: ":" + env.GetString("PORT", "8080"),
 		db: dbConfig{
-			dsn: env.GetString("DATABASE_URL", ""),
+			dsn: dsn,
 		},
 	}
 
@@ -30,18 +29,23 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Database
-	conn, err := pgx.Connect(ctx, cfg.db.dsn)
+	db, err := sql.Open("mysql", cfg.db.dsn)
 	if err != nil {
-		logger.Error("failed to connect to database", "error", err, "dsn", cfg.db.dsn)
+		logger.Error("failed to open database", "error", err, "dsn", cfg.db.dsn)
 		os.Exit(1)
 	}
-	defer conn.Close(ctx)
+	defer db.Close()
 
-	logger.Info("Connected to database")
+	if err := db.Ping(); err != nil {
+		logger.Error("failed to connect to MySQL database", "error", err, "dsn", cfg.db.dsn)
+		os.Exit(1)
+	}
+
+	logger.Info("Connected to MySQL database")
 
 	api := application{
 		config: cfg,
-		db:     conn,
+		db:     db,
 	}
 
 	if err := api.run(api.mount()); err != nil {

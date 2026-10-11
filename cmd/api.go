@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,7 +14,7 @@ import (
 	"github.com/Danztee/shazam-build/internal/spotify"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func (app *application) mount() http.Handler {
@@ -34,7 +35,7 @@ func (app *application) mount() http.Handler {
 	spotifyService := spotify.NewService()
 	downloadService := download.NewService(slog.Default())
 	audioService := audio.NewService(slog.Default())
-	songsService := songs.NewService(repo.New(app.db), app.db, spotifyService, downloadService, audioService)
+	songsService := songs.NewService(repo.NewMySQLQuerier(app.db), nil, app.db, spotifyService, downloadService, audioService)
 	songsHandler := songs.NewHandler(songsService)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/songs", songsHandler.ListSongs)
@@ -62,7 +63,7 @@ func (app *application) run(h http.Handler) error {
 
 type application struct {
 	config Config
-	db     *pgx.Conn
+	db     *sql.DB
 }
 
 type Config struct {

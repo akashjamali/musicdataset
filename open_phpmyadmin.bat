@@ -1,0 +1,3 @@
+@echo off
+echo Opening phpMyAdmin in browser...
+start http://localhost/phpmyadmin/index.php?route=/database/structure^&db=shazam
