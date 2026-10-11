@@ -8,6 +8,7 @@ const AudioRecorder = () => {
   const [showCatalog, setShowCatalog] = useState(false);
   const [songsList, setSongsList] = useState<Match[]>([]);
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
+  const [audioSource, setAudioSource] = useState<"mic" | "system">("system");
 
   const fetchSongs = async () => {
     setIsLoadingSongs(true);
@@ -32,7 +33,39 @@ const AudioRecorder = () => {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let stream: MediaStream;
+
+      if (audioSource === "system") {
+        if (!navigator.mediaDevices.getDisplayMedia) {
+          alert("توهان جو برائوزر سسٽم آڊيو سپورٽ نٿو ڪري. مهرباني ڪري مائيڪرو فون استعمال ڪريو.");
+          return;
+        }
+
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+        });
+
+        const audioTracks = displayStream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          displayStream.getTracks().forEach((t) => t.stop());
+          alert("مهرباني ڪري 'Also share system audio' يا 'Tab Audio' چيڪ ڪريو ته جيئن ڪمپيوٽر جو آواز حاصل ٿئي.");
+          setIsRecording(false);
+          setIsAnalyzing(false);
+          return;
+        }
+
+        // Stop video track immediately since we only need the audio
+        displayStream.getVideoTracks().forEach((track) => track.stop());
+        stream = new MediaStream(audioTracks);
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+
       mediaRecorderRef.current = new MediaRecorder(stream);
 
       mediaRecorderRef.current.ondataavailable = (e) => {
@@ -62,10 +95,9 @@ const AudioRecorder = () => {
 
       timeoutRef.current = setTimeout(() => {
         stopRecording();
-      }, 3000);
+      }, 3500);
     } catch (error) {
-      console.error("Error accessing microphone:", error);
-      alert("مائيڪرو فون تائين رسائي نه ملي سگهي.");
+      console.error("Error accessing audio source:", error);
       setIsRecording(false);
       setIsAnalyzing(false);
     }
@@ -91,7 +123,7 @@ const AudioRecorder = () => {
   };
 
   const handleRetryOrFailure = () => {
-    if (retryCountRef.current < 3) {
+    if (retryCountRef.current < 2) {
       retryCountRef.current += 1;
       startRecording();
     } else {
@@ -148,7 +180,8 @@ const AudioRecorder = () => {
     <div className="h-screen overflow-hidden bg-[#0474ff] text-white p-4 relative" dir="rtl">
       {/* Top Bar with Catalog Button */}
       <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
-        <div className="text-sm font-medium bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full">
+        <div className="text-sm font-medium bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           ڊيٽابيس: فعال (PostgreSQL)
         </div>
         <button
@@ -159,14 +192,44 @@ const AudioRecorder = () => {
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center h-full gap-8">
-        <h3
-          className={`text-3xl font-bold tracking-tight transition-all duration-300 text-center ${
-            isBusy ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-          }`}
-        >
-          هيلو سنڌ ميوزڪ سڃاڻپ
-        </h3>
+      <div className="flex flex-col items-center justify-center h-full gap-6">
+        <div className="text-center space-y-2">
+          <h3
+            className={`text-3xl font-bold tracking-tight transition-all duration-300 ${
+              isBusy ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+            }`}
+          >
+            هيلو سنڌ ميوزڪ سڃاڻپ
+          </h3>
+
+          {/* Audio Source Switcher */}
+          {!isBusy && (
+            <div className="flex items-center justify-center gap-1.5 bg-black/25 p-1 rounded-full border border-white/20 mx-auto max-w-xs transition-all">
+              <button
+                type="button"
+                onClick={() => setAudioSource("system")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  audioSource === "system"
+                    ? "bg-white text-[#0474ff] shadow-md"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                <span>💻</span> سسٽم / ڪمپيوٽر آڊيو
+              </button>
+              <button
+                type="button"
+                onClick={() => setAudioSource("mic")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  audioSource === "mic"
+                    ? "bg-white text-[#0474ff] shadow-md"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                <span>🎙️</span> مائيڪرو فون
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="relative flex items-center justify-center">
           {isRecording && (
@@ -181,7 +244,7 @@ const AudioRecorder = () => {
           )}
 
           <button
-            className={`relative z-10 w-30 h-30 rounded-full border-none bg-white flex items-center justify-center animate-in-out shadow-lg ${
+            className={`relative z-10 w-32 h-32 rounded-full border-none bg-white flex flex-col items-center justify-center animate-in-out shadow-2xl ${
               isBusy
                 ? "cursor-not-allowed opacity-80"
                 : "cursor-pointer hover:scale-105 transition-transform"
@@ -190,10 +253,19 @@ const AudioRecorder = () => {
             disabled={isBusy}
             aria-label="رڪارڊنگ شروع ڪريو"
           >
-            <svg className="w-20 h-20 fill-[#0474ff]" viewBox="0 0 24 24">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-            </svg>
+            {audioSource === "system" ? (
+              <svg className="w-16 h-16 fill-[#0474ff]" viewBox="0 0 24 24">
+                <path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/>
+              </svg>
+            ) : (
+              <svg className="w-16 h-16 fill-[#0474ff]" viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+              </svg>
+            )}
+            <span className="text-[10px] font-bold text-[#0474ff] mt-1">
+              {audioSource === "system" ? "سسٽم آڊيو" : "مائيڪرو فون"}
+            </span>
           </button>
         </div>
 
@@ -202,7 +274,11 @@ const AudioRecorder = () => {
             isBusy ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           }`}
         >
-          {isAnalyzing ? "گيت جي ڳولا جاري آهي..." : "موسيقي ٻڌي رهيو آهي..."}
+          {isAnalyzing
+            ? "گيت جي ڳولا جاري آهي..."
+            : audioSource === "system"
+            ? "ڪمپيوٽر جو آواز پڪڙي رهيو آهي..."
+            : "موسيقي ٻڌي رهيو آهي..."}
         </h3>
       </div>
 
