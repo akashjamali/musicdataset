@@ -1,0 +1,3 @@
+@echo off
+echo Opening XAMPP Database Web UI...
+start http://localhost/adminer.php

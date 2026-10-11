@@ -1,0 +1,3 @@
+@echo off
+echo Starting pgAdmin 4...
+start "" "C:\xampp\pgsql\pgAdmin 4\runtime\pgAdmin4.exe"

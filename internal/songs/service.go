@@ -26,6 +26,7 @@ var ErrNoMatch = errors.New("no song match found")
 type Service interface {
 	AddSong(ctx context.Context, song createSongPayload) (repo.Song, error)
 	MatchSong(ctx context.Context, base64Audio string) (repo.Song, error)
+	ListSongs(ctx context.Context) ([]repo.Song, error)
 }
 
 type svc struct {
@@ -446,4 +447,8 @@ func (s *svc) processAndSaveFingerprints(ctx context.Context, songID int32, wavP
 
 	slog.Info("successfully saved all fingerprints", "song_id", songID, "count", rowsCopied, "total_fingerprints", len(deduplicated))
 	return nil
+}
+
+func (s *svc) ListSongs(ctx context.Context) ([]repo.Song, error) {
+	return s.repo.ListSongs(ctx)
 }

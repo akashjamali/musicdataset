@@ -64,3 +64,16 @@ func (h *handler) MatchSong(w http.ResponseWriter, r *http.Request) {
 		"records": []interface{}{song},
 	})
 }
+
+func (h *handler) ListSongs(w http.ResponseWriter, r *http.Request) {
+	songs, err := h.service.ListSongs(r.Context())
+	if err != nil {
+		log.Println("error listing songs", err)
+		json.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	json.WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"songs": songs,
+	})
+}

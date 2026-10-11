@@ -5,10 +5,29 @@ const AudioRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [matchResult, setMatchResult] = useState<Match[]>([]);
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [songsList, setSongsList] = useState<Match[]>([]);
+  const [isLoadingSongs, setIsLoadingSongs] = useState(false);
+
+  const fetchSongs = async () => {
+    setIsLoadingSongs(true);
+    setShowCatalog(true);
+    try {
+      const res = await fetch("/api/v1/songs");
+      if (res.ok) {
+        const data = await res.json();
+        setSongsList(data.songs || []);
+      }
+    } catch (e) {
+      console.error("Failed to load catalog", e);
+    } finally {
+      setIsLoadingSongs(false);
+    }
+  };
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timeoutRef = useRef<any>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
 
   const startRecording = async () => {
@@ -46,7 +65,7 @@ const AudioRecorder = () => {
       }, 3000);
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      alert("Could not access microphone.");
+      alert("مائيڪرو فون تائين رسائي نه ملي سگهي.");
       setIsRecording(false);
       setIsAnalyzing(false);
     }
@@ -78,7 +97,7 @@ const AudioRecorder = () => {
     } else {
       retryCountRef.current = 0;
       setIsAnalyzing(false);
-      alert("Song not found. Please try again.");
+      alert("ڪو به گيت نه مليو. مهرباني ڪري ٻيهر ڪوشش ڪريو.");
     }
   };
 
@@ -119,21 +138,34 @@ const AudioRecorder = () => {
     retryCountRef.current = 0;
   };
 
+  const isBusy = isRecording || isAnalyzing;
+
   if (matchResult.length > 0) {
     return <MatchResult match={matchResult[0]} onReset={handleReset} />;
   }
 
-  const isBusy = isRecording || isAnalyzing;
-
   return (
-    <div className="h-screen overflow-hidden bg-[#0474ff] text-white p-4 relative">
+    <div className="h-screen overflow-hidden bg-[#0474ff] text-white p-4 relative" dir="rtl">
+      {/* Top Bar with Catalog Button */}
+      <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
+        <div className="text-sm font-medium bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full">
+          ڊيٽابيس: فعال (PostgreSQL)
+        </div>
+        <button
+          onClick={fetchSongs}
+          className="bg-white text-[#0474ff] hover:bg-slate-100 font-bold px-4 py-1.5 rounded-full shadow-md text-sm transition-all"
+        >
+          گيتن جي فهرست (Library)
+        </button>
+      </div>
+
       <div className="flex flex-col items-center justify-center h-full gap-8">
         <h3
-          className={`text-3xl font-bold transition-all duration-300 ${
+          className={`text-3xl font-bold tracking-tight transition-all duration-300 text-center ${
             isBusy ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
           }`}
         >
-          Tap to shazam
+          هيلو سنڌ ميوزڪ سڃاڻپ
         </h3>
 
         <div className="relative flex items-center justify-center">
@@ -156,7 +188,7 @@ const AudioRecorder = () => {
             }`}
             onClick={startRecording}
             disabled={isBusy}
-            aria-label="Start Recording"
+            aria-label="رڪارڊنگ شروع ڪريو"
           >
             <svg className="w-20 h-20 fill-[#0474ff]" viewBox="0 0 24 24">
               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
@@ -166,13 +198,68 @@ const AudioRecorder = () => {
         </div>
 
         <h3
-          className={`text-base font-semibold transition-all duration-300 ${
+          className={`text-lg font-semibold transition-all duration-300 text-center ${
             isBusy ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           }`}
         >
-          {isAnalyzing ? "Looking for a match..." : "Listening for music..."}
+          {isAnalyzing ? "گيت جي ڳولا جاري آهي..." : "موسيقي ٻڌي رهيو آهي..."}
         </h3>
       </div>
+
+      {/* Catalog Modal */}
+      {showCatalog && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white text-gray-900 rounded-2xl w-full max-w-lg p-6 shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="flex justify-between items-center border-b pb-3 mb-4">
+              <div>
+                <h4 className="text-xl font-bold text-gray-900">ڊيٽابيس جا سنڌي گيت</h4>
+                <p className="text-xs text-gray-500">PostgreSQL (800,000+ Fingerprints)</p>
+              </div>
+              <button
+                onClick={() => setShowCatalog(false)}
+                className="text-gray-400 hover:text-gray-700 font-bold text-xl px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+              {isLoadingSongs ? (
+                <div className="text-center py-8 text-gray-500">لوڊ ٿي رهيو آهي...</div>
+              ) : songsList.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">ڪو به گيت موجود ناهي</div>
+              ) : (
+                songsList.map((song, idx) => (
+                  <div
+                    key={song.id || idx}
+                    className="p-3.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-all flex items-center gap-3"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#0474ff]/10 text-[#0474ff] font-bold flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-gray-800 text-base truncate">{song.title}</div>
+                      <div className="text-xs text-gray-500 truncate">{song.artist}</div>
+                    </div>
+                    <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-semibold">
+                      محفوظ
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-4 pt-3 border-t flex justify-end">
+              <button
+                onClick={() => setShowCatalog(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg text-sm transition-all"
+              >
+                بند ڪريو
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
