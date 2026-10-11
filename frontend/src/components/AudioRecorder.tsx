@@ -95,7 +95,7 @@ const AudioRecorder = () => {
 
       timeoutRef.current = setTimeout(() => {
         stopRecording();
-      }, 4500);
+      }, 3500);
     } catch (error) {
       console.error("Error accessing audio source:", error);
       setIsRecording(false);
