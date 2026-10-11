@@ -22,6 +22,8 @@ type Song struct {
 	Artists    json.RawMessage  `json:"artists"`
 	Album      pgtype.Text      `json:"album"`
 	ImageUrl   pgtype.Text      `json:"image_url"`
+	YtUrl      pgtype.Text      `json:"yt_url"`
+	SpotifyUrl pgtype.Text      `json:"spotify_url"`
 	DurationMs pgtype.Int4      `json:"duration_ms"`
 	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }

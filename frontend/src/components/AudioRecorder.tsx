@@ -315,11 +315,43 @@ const AudioRecorder = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-gray-800 text-base truncate">{song.title}</div>
-                      <div className="text-xs text-gray-500 truncate">{song.artist}</div>
+                      <div className="text-xs text-gray-500 truncate">
+                        {Array.isArray(song.artists)
+                          ? song.artists.join("، ")
+                          : (song.artist || (typeof song.artists === "string" ? song.artists : ""))}
+                      </div>
                     </div>
-                    <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-semibold">
-                      محفوظ
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {song.yt_url && (
+                        <a
+                          href={typeof song.yt_url === "string" ? song.yt_url : (song.yt_url as { String?: string })?.String}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          title="يوٽيوب تي کوليو"
+                        >
+                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                          </svg>
+                        </a>
+                      )}
+                      {song.spotify_url && (
+                        <a
+                          href={typeof song.spotify_url === "string" ? song.spotify_url : (song.spotify_url as { String?: string })?.String}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                          title="اسپوٽيفائي تي کوليو"
+                        >
+                          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.498 17.306c-.215.352-.676.463-1.028.247-2.816-1.721-6.36-2.111-10.535-1.157-.403.092-.807-.16-.899-.562-.092-.403.16-.807.562-.899 4.568-1.044 8.5-1.602 11.652.343.353.216.464.676.248 1.028zm1.468-3.262c-.27.44-.847.578-1.287.308-3.224-1.982-8.138-2.555-11.95-1.398-.496.15-1.023-.136-1.173-.632-.15-.496.136-1.023.632-1.173 4.356-1.322 9.776-.682 13.47 1.608.44.27.578.847.308 1.287zm.126-3.41c-3.863-2.294-10.237-2.505-13.914-1.389-.592.18-1.22-.164-1.4-.756-.18-.592.164-1.22.756-1.4 4.227-1.284 11.264-1.037 15.696 1.593.533.316.708 1.01.392 1.543-.316.533-1.01.708-1.53.409z"/>
+                          </svg>
+                        </a>
+                      )}
+                      <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-semibold">
+                        محفوظ
+                      </span>
+                    </div>
                   </div>
                 ))
               )}

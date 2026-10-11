@@ -5,9 +5,9 @@ echo ======================================================================
 echo                HELLOSINDH MUSIC DATABASE (MySQL / MariaDB)
 echo ======================================================================
 echo.
-echo [1] SONGS IN DATABASE (songs table):
+echo [1] SONGS IN DATABASE (with YouTube and Spotify URLs):
 echo ----------------------------------------------------------------------
-"C:\xampp\mysql\bin\mysql.exe" -u root --default-character-set=utf8mb4 shazam -e "SELECT id, title, artists, album, created_at FROM songs ORDER BY id;"
+"C:\xampp\mysql\bin\mysql.exe" -u root --default-character-set=utf8mb4 shazam -e "SELECT id, title, artists, yt_url, spotify_url FROM songs ORDER BY id;"
 
 echo.
 echo [2] TOTAL AUDIO FINGERPRINTS STORED (fingerprints table):

@@ -50,7 +50,7 @@ func (m *MySQLQuerier) CreateSong(ctx context.Context, arg CreateSongParams) (So
 
 func (m *MySQLQuerier) GetSong(ctx context.Context, id int32) (Song, error) {
 	row := m.db.QueryRowContext(ctx,
-		"SELECT id, title, artists, album, image_url, duration_ms, created_at FROM songs WHERE id = ? LIMIT 1",
+		"SELECT id, title, artists, album, image_url, yt_url, spotify_url, duration_ms, created_at FROM songs WHERE id = ? LIMIT 1",
 		id,
 	)
 	return scanSong(row)
@@ -58,14 +58,14 @@ func (m *MySQLQuerier) GetSong(ctx context.Context, id int32) (Song, error) {
 
 func (m *MySQLQuerier) GetSongByTitleAndArtists(ctx context.Context, arg GetSongByTitleAndArtistsParams) (Song, error) {
 	row := m.db.QueryRowContext(ctx,
-		"SELECT id, title, artists, album, image_url, duration_ms, created_at FROM songs WHERE title = ? AND JSON_CONTAINS(artists, ?) LIMIT 1",
+		"SELECT id, title, artists, album, image_url, yt_url, spotify_url, duration_ms, created_at FROM songs WHERE title = ? AND JSON_CONTAINS(artists, ?) LIMIT 1",
 		arg.Title, string(arg.Column2),
 	)
 	song, err := scanSong(row)
 	if err != nil {
 		// Fallback to title only
 		row2 := m.db.QueryRowContext(ctx,
-			"SELECT id, title, artists, album, image_url, duration_ms, created_at FROM songs WHERE title = ? LIMIT 1",
+			"SELECT id, title, artists, album, image_url, yt_url, spotify_url, duration_ms, created_at FROM songs WHERE title = ? LIMIT 1",
 			arg.Title,
 		)
 		return scanSong(row2)
@@ -75,7 +75,7 @@ func (m *MySQLQuerier) GetSongByTitleAndArtists(ctx context.Context, arg GetSong
 
 func (m *MySQLQuerier) ListSongs(ctx context.Context) ([]Song, error) {
 	rows, err := m.db.QueryContext(ctx,
-		"SELECT id, title, artists, album, image_url, duration_ms, created_at FROM songs ORDER BY id DESC",
+		"SELECT id, title, artists, album, image_url, yt_url, spotify_url, duration_ms, created_at FROM songs ORDER BY id DESC",
 	)
 	if err != nil {
 		return nil, err
@@ -210,11 +210,11 @@ func (m *MySQLQuerier) DeleteFingerprintsBySongID(ctx context.Context, songID in
 func scanSong(row *sql.Row) (Song, error) {
 	var s Song
 	var artistsStr string
-	var album, imageUrl sql.NullString
+	var album, imageUrl, ytUrl, spotifyUrl sql.NullString
 	var durationMs sql.NullInt32
 	var createdAt time.Time
 
-	err := row.Scan(&s.ID, &s.Title, &artistsStr, &album, &imageUrl, &durationMs, &createdAt)
+	err := row.Scan(&s.ID, &s.Title, &artistsStr, &album, &imageUrl, &ytUrl, &spotifyUrl, &durationMs, &createdAt)
 	if err != nil {
 		return Song{}, err
 	}
@@ -225,6 +225,12 @@ func scanSong(row *sql.Row) (Song, error) {
 	}
 	if imageUrl.Valid {
 		s.ImageUrl = pgtype.Text{String: imageUrl.String, Valid: true}
+	}
+	if ytUrl.Valid {
+		s.YtUrl = pgtype.Text{String: ytUrl.String, Valid: true}
+	}
+	if spotifyUrl.Valid {
+		s.SpotifyUrl = pgtype.Text{String: spotifyUrl.String, Valid: true}
 	}
 	if durationMs.Valid {
 		s.DurationMs = pgtype.Int4{Int32: durationMs.Int32, Valid: true}
@@ -237,11 +243,11 @@ func scanSong(row *sql.Row) (Song, error) {
 func scanSongFromRows(rows *sql.Rows) (Song, error) {
 	var s Song
 	var artistsStr string
-	var album, imageUrl sql.NullString
+	var album, imageUrl, ytUrl, spotifyUrl sql.NullString
 	var durationMs sql.NullInt32
 	var createdAt time.Time
 
-	err := rows.Scan(&s.ID, &s.Title, &artistsStr, &album, &imageUrl, &durationMs, &createdAt)
+	err := rows.Scan(&s.ID, &s.Title, &artistsStr, &album, &imageUrl, &ytUrl, &spotifyUrl, &durationMs, &createdAt)
 	if err != nil {
 		return Song{}, err
 	}
@@ -252,6 +258,12 @@ func scanSongFromRows(rows *sql.Rows) (Song, error) {
 	}
 	if imageUrl.Valid {
 		s.ImageUrl = pgtype.Text{String: imageUrl.String, Valid: true}
+	}
+	if ytUrl.Valid {
+		s.YtUrl = pgtype.Text{String: ytUrl.String, Valid: true}
+	}
+	if spotifyUrl.Valid {
+		s.SpotifyUrl = pgtype.Text{String: spotifyUrl.String, Valid: true}
 	}
 	if durationMs.Valid {
 		s.DurationMs = pgtype.Int4{Int32: durationMs.Int32, Valid: true}
