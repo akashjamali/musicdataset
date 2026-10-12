@@ -47,7 +47,7 @@ jobs:
 
       - name: Initialize Database Schema
         run: |
-          mysql -h 127.0.0.1 -u root shazam < hellosindh_scraper_package/schema.sql
+          mysql -h 127.0.0.1 -u root shazam < schema.sql
           mysql -h 127.0.0.1 -u root -e "SHOW TABLES IN shazam;"
 
       - name: Build Scraper Engine
