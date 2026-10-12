@@ -1,0 +1,78 @@
+name: Cloud Scraper (100% Automated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      workers:
+        description: 'Parallel workers'
+        required: true
+        default: '16'
+      limit:
+        description: 'Limit (0 for all 1,113 songs)'
+        required: true
+        default: '0'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: shazam
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Install yt-dlp & FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg zip -qq
+          pip install -U yt-dlp -q
+          ffmpeg -version | head -n 1
+          yt-dlp --version
+
+      - name: Initialize Database Schema
+        run: |
+          mysql -h 127.0.0.1 -u root shazam < hellosindh_scraper_package/schema.sql
+          mysql -h 127.0.0.1 -u root -e "SHOW TABLES IN shazam;"
+
+      - name: Build Scraper Engine
+        run: |
+          go build -o scraper ./cmd/dataset_scraper
+
+      - name: Run High-Speed Cloud Scraper
+        env:
+          DATABASE_URL: "root:@tcp(127.0.0.1:3306)/shazam?allowAllFiles=true&parseTime=true"
+        run: |
+          ./scraper -dataset sindhi_songs_dataset.json -workers ${{ github.event.inputs.workers }} -limit ${{ github.event.inputs.limit }}
+
+      - name: Check Final Database Count
+        run: |
+          mysql -h 127.0.0.1 -u root -e "SELECT count(*) AS total_songs FROM shazam.songs;"
+
+      - name: Export MySQL Database Dump
+        run: |
+          mysqldump -h 127.0.0.1 -u root --single-transaction --quick --max_allowed_packet=512M shazam > shazam_completed_1113.sql
+          zip -9 shazam_completed_1113.zip shazam_completed_1113.sql
+          ls -lh shazam_completed_1113.zip
+
+      - name: Upload Completed Database Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shazam-completed-database
+          path: shazam_completed_1113.zip
+          retention-days: 30

@@ -33,3 +33,8 @@ main
 .DS_Store
 
 downloads/
+*.zip
+*.sql
+dataset_scraper_linux
+hellosindh_scraper_package/*.exe
+hellosindh_scraper_package/*.sql
