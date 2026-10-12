@@ -1,7 +1,6 @@
 package env
 
 import (
-	"log/slog"
 	"os"
 
 	"github.com/joho/godotenv"
