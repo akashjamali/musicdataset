@@ -59,6 +59,7 @@ jobs:
         env:
           DATABASE_URL: "root:@tcp(127.0.0.1:3306)/shazam?allowAllFiles=true&parseTime=true"
         run: |
+          printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env
           ./scraper -dataset sindhi_songs_dataset.json -workers ${{ github.event.inputs.workers }} -limit ${{ github.event.inputs.limit }}
 
       - name: Check Final Database Count
