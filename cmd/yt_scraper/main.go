@@ -328,6 +328,7 @@ func downloadAndConvertToWav(ctx context.Context, videoID, ytURL string) (string
 
 	// Download audio to temp wav directly via yt-dlp + ffmpeg
 	cmd := exec.CommandContext(ctx, ytDlpPath,
+		"--extractor-args", "youtube:player_client=ios,android",
 		"--extract-audio",
 		"--audio-format", "wav",
 		"--postprocessor-args", "ffmpeg:-ac 1 -ar 44100",

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="sd" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HelloSindh Music - Live Ingestion Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Noto+Naskh+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0474ff;
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 46, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent: #10b981;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', 'Noto Naskh Arabic', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #60a5fa, #38bdf8, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+    .header p { color: var(--muted); font-size: 0.95rem; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 12px #34d399;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .card-title { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+    .card-value { font-size: 1.8rem; font-weight: 800; color: #fff; }
+
+    .progress-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .progress-bar-bg {
+      width: 100%;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0474ff, #38bdf8, #10b981);
+      border-radius: 9999px;
+      transition: width 0.6s ease;
+      width: 0%;
+    }
+
+    .list-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+    }
+    .list-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .song-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      transition: background 0.2s;
+    }
+    .song-item:hover { background: rgba(255, 255, 255, 0.03); }
+    .song-info { display: flex; flex-direction: column; gap: 0.2rem; }
+    .song-title { font-weight: 600; font-size: 0.95rem; }
+    .song-artist { font-size: 0.8rem; color: var(--muted); }
+    .song-link {
+      color: #38bdf8;
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 0.5rem;
+      background: rgba(56, 189, 248, 0.1);
+      transition: 0.2s;
+    }
+    .song-link:hover { background: rgba(56, 189, 248, 0.2); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>هيلو سنڌ ميوزڪ — لائيو رپورٽ</h1>
+      <p>Sindhi Songs Dataset Ingestion Live Dashboard</p>
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        <span id="liveStatus">لائيو ڊيٽا فعال</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <span class="card-title">مڪمل ٿيل گيت (Completed)</span>
+        <span class="card-value" id="completedCount" style="color: #38bdf8;">--</span>
+      </div>
+      <div class="card">
+        <span class="card-title">باقي گيت (Remaining)</span>
+        <span class="card-value" id="remainingCount" style="color: #f87171;">--</span>
+      </div>
+      <div class="card">
+        <span class="card-title">ڪل ڊيٽاسيٽ (Total Dataset)</span>
+        <span class="card-value">1,113</span>
+      </div>
+      <div class="card">
+        <span class="card-title">مڪمل سيڪڙو (Progress)</span>
+        <span class="card-value" id="percentVal" style="color: #34d399;">--%</span>
+      </div>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-header">
+        <span>مجموعي ترقي (Overall Progress)</span>
+        <span id="percentText">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="list-card">
+      <h3>
+        <span>تازو شامل ٿيل گيت (Recently Ingested Songs)</span>
+        <span style="font-size: 0.8rem; color: var(--muted);" id="refreshTimer">تازو ٿي رهيو آهي...</span>
+      </h3>
+      <div id="songsList">
+        <p style="color: var(--muted); text-align: center; padding: 1rem;">ڊيٽابيس مان لوڊ ٿي رهيو آهي...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOTAL_DATASET = 1113;
+
+    async function updateDashboard() {
+      try {
+        const res = await fetch('http://localhost:8080/api/v1/songs');
+        if (!res.ok) throw new Error('API unreachable');
+        const data = await res.json();
+        const songs = data.songs || [];
+        const count = songs.length;
+        const remaining = Math.max(0, TOTAL_DATASET - count);
+        const percent = ((count / TOTAL_DATASET) * 100).toFixed(1);
+
+        document.getElementById('completedCount').textContent = count;
+        document.getElementById('remainingCount').textContent = remaining;
+        document.getElementById('percentVal').textContent = percent + '%';
+        document.getElementById('percentText').textContent = count + ' / ' + TOTAL_DATASET + ' (' + percent + '%)';
+        document.getElementById('progressBar').style.width = percent + '%';
+
+        const listContainer = document.getElementById('songsList');
+        if (songs.length > 0) {
+          const recent = songs.slice(0, 10);
+          listContainer.innerHTML = recent.map((s, idx) => {
+            let artist = s.artists || 'سنڌي فنڪار';
+            try {
+              if (Array.isArray(artist)) artist = artist.join(', ');
+              else if (typeof artist === 'string' && artist.startsWith('[')) artist = JSON.parse(artist).join(', ');
+            } catch(e) {}
+            return `
+              <div class="song-item">
+                <div class="song-info">
+                  <span class="song-title">#${s.id} — ${s.title}</span>
+                  <span class="song-artist">${artist}</span>
+                </div>
+                ${s.yt_url ? `<a href="${s.yt_url}" target="_blank" class="song-link">▶ ٻڌو (YouTube)</a>` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        document.getElementById('liveStatus').textContent = 'سرور بند آهي (Check Backend)';
+      }
+    }
+
+    updateDashboard();
+    setInterval(updateDashboard, 3000);
+  </script>
+</body>
+</html>
